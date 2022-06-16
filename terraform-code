@@ -1,0 +1,94 @@
+provider "aws" {
+  profile    = "terraform-user"
+  access_key = "AKIA5UAZQ7IZBO2XYR5Y"
+  secret_key = "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"
+  region     = "ap-south-1"
+}
+
+resource "aws_vpc" "myvpc" {
+  cidr_block = "10.0.0.0/16"
+  tags = {
+    Name              = "my-vpc"
+    availability_zone = "ap-south-1"
+  }
+}
+
+resource "aws_subnet" "subnet" {
+  vpc_id     = aws_vpc.myvpc.id
+  cidr_block = "10.0.1.0/24"
+  tags = {
+    Name = "subnet"
+  }
+}
+
+/*
+resource "aws_key_pair" "deployer" {
+  key_name   = "ec2-key"
+  public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCEOjLe1/XwNUmEuXeeJb4HxJ0bBKULEBBIRWAnC4DP4w0C8+ktiEwGmCu0v9K8R6P8UifxAyuwKTqKyNnUpVth7W0dTPPd9Vlzwh0UZrYUzBjg2igtZysk02bhCd6ZhWOsoM3jXD1I0L6po0WrwhH1O/94ZzX6z7huOgRuAp3CeyU/P4t4JKIYlUWvOkE9bV4ueo0Bg0wLZM8xMjKIMeSsBe9swm04w5VJKuhRzeAj92eXEGUy6luLd5W5GEwpVBl2ABGmaqwLeTsNgZEYlrVQGJSmWjDFOAdvZ6/pTmOyyTej4vg9tw+7/4SQT7u5k2IKGEQM/J6+gpp+P+hFAujN rsa-key-20220518"
+}
+*/
+
+resource "aws_security_group" "allow_ssh" {
+  name        = "allow_ssh"
+  description = "allow ssh traffic"
+
+  ingress {
+    from_port = 22
+    to_port   = 22
+    protocol  = "tcp"
+
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_instance" "example" {
+  ami           = "ami-0c6615d1e95c98aca"
+  instance_type = "t2.micro"
+  tags = {
+    Name = "linux-instance"
+  }
+  key_name        = "Mumbai-Key"
+  security_groups = ["${aws_security_group.allow_ssh.name}"]
+}
+
+resource "aws_s3_bucket" "vish" {
+  bucket = "my-bucket-vish"
+  tags = {
+    Name        = "my-vish-bucket"
+    acl         = "private"
+    Environment = "Devops"
+  }
+
+}
+/*
+resource "aws_iam_role" "iam_for_lambda" {
+  name = "iam_for_lambda"
+
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "lambda.amazonaws.com"
+      },
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_lambda_function" "test_lambda" {
+  filename      = "lambda_function_payload.zip"
+  function_name = "lambda_function_name"
+  role          = aws_iam_role.iam_for_lambda.arn
+  handler       = "index.test"
+  runtime       = "nodejs14.x"
+
+  ephemeral_storage {
+    size = 10240 # Min 512 MB and the Max 10240 MB
+  }
+} */
